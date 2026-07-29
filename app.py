@@ -12,7 +12,7 @@ genai.configure(api_key=api_key)
 
 # 3. Inicializar el modelo con el contexto de SST
 modelo = genai.GenerativeModel(
-    'gemini-1.5-pro',
+    'gemini-2.5-flash',
     system_instruction="Eres un asesor experto en Seguridad y Salud en el Trabajo (SST) que trabaja para una ARL. Tu objetivo es ayudar a identificar peligros, evaluar riesgos y sugerir medidas de control preventivas de forma didáctica y basándote en normativas técnicas."
 )
 
