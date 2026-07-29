@@ -4,7 +4,7 @@ from PIL import Image
 
 # 1. Configuración de la página
 st.set_page_config(page_title="Asistente SST - ARL", page_icon="👷", layout="centered")
-st.title("Auditor Virtual de SST 👷‍♂️ (Multimodal)")
+st.title("Asesor Virtual de SST 👷‍♂️")
 st.write("Bienvenido. Describe un escenario de trabajo, sube una foto de una condición peligrosa o adjunta un documento para analizar.")
 
 # 2. Configuración de la API
