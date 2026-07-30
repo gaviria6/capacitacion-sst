@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 from PIL import Image
 
 # 1. Configuración de la página
@@ -7,13 +8,11 @@ st.set_page_config(page_title="Asistente SST - ARL", page_icon="👷", layout="c
 st.title("Asesor Virtual de SST 👷‍♂️")
 st.write("Bienvenido. Describe un escenario de trabajo, sube una foto de una condición peligrosa o adjunta un documento para analizar.")
 
-# 2. Configuración de la API
-import os
-api_key = os.environ.get("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
+# 2. Configuración de Vertex AI (Autenticación automática con Google Cloud)
+vertexai.init(project="project-6ae24aa7-49e4-48c3-bcd", location="us-central1")
 
 # 3. Inicializar el modelo (usando gemini-3.5-flash)
-modelo = genai.GenerativeModel(
+modelo = GenerativeModel(
     'gemini-3.5-flash',
     system_instruction="Eres un asesor experto en Seguridad y Salud en el Trabajo (SST) que trabaja para una ARL. Tu objetivo es ayudar a identificar peligros, evaluar riesgos y sugerir medidas de control preventivas de forma didáctica y basándote en normativas técnicas."
 )
