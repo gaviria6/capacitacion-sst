@@ -1,7 +1,8 @@
 import streamlit as st
 import vertexai
-from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel, Part
 from PIL import Image
+import io
 
 # 1. Configuración de la página
 st.set_page_config(page_title="Asistente SST - ARL", page_icon="👷", layout="centered")
@@ -25,7 +26,10 @@ if "chat_session" not in st.session_state:
 for message in st.session_state.chat_session.history:
     role = "assistant" if message.role == "model" else "user"
     with st.chat_message(role):
-        st.markdown(message.parts[0].text)
+        # Recorremos las partes del mensaje para mostrarlas de forma segura
+        for part in message.parts:
+            if part.text:
+                st.markdown(part.text)
 
 # 5. Componente para subir archivos (Imágenes o PDFs)
 archivo_subido = st.file_uploader(
@@ -33,43 +37,49 @@ archivo_subido = st.file_uploader(
     type=["png", "jpg", "jpeg", "pdf"]
 )
 
-# Si el usuario subió una imagen, la mostramos en pantalla de forma previa
+# Si el usuario subió un archivo, lo preparamos para Vertex AI
 contenido_para_enviar = []
+imagen_pil = None
+
 if archivo_subido is not None:
     # Verificamos si es una imagen
     if archivo_subido.type in ["image/png", "image/jpeg", "image/jpg"]:
-        imagen = Image.open(archivo_subido)
-        st.image(imagen, caption="Imagen cargada para inspección de SST", use_column_width=True)
-        contenido_para_enviar.append(imagen)
+        imagen_pil = Image.open(archivo_subido)
+        st.image(imagen_pil, caption="Imagen cargada para inspección de SST", use_column_width=True)
+        
+        # Convertimos la imagen PIL a bytes para enviarla correctamente a Vertex AI
+        buffered = io.BytesIO()
+        imagen_pil.save(buffered, format=imagen_pil.format if imagen_pil.format else "JPEG")
+        img_bytes = buffered.getvalue()
+        
+        # Creamos el objeto Part compatible con Vertex AI
+        parte_imagen = Part.from_data(data=img_bytes, mime_type=archivo_subido.type)
+        contenido_para_enviar.append(parte_imagen)
     else:
-        # Si es un PDF o documento, informamos que se adjuntó
+        # Si es un PDF o documento
         st.info(f"📄 Documento adjuntado: {archivo_subido.name}")
-        # Para PDFs u otros archivos, leemos los bytes
         bytes_archivo = archivo_subido.getvalue()
-        contenido_para_enviar.append({
-            'mime_type': archivo_subido.type,
-            'data': bytes_archivo
-        })
+        parte_documento = Part.from_data(data=bytes_archivo, mime_type=archivo_subido.type)
+        contenido_para_enviar.append(parte_documento)
 
 # 6. Capturar la entrada del usuario (Chat)
 if prompt := st.chat_input("Escribe tu consulta o pide que analice el archivo subido..."):
     # Mostramos el mensaje del usuario en el chat
     with st.chat_message("user"):
         st.markdown(prompt)
-        if archivo_subido is not None and archivo_subido.type in ["image/png", "image/jpeg", "image/jpg"]:
-            st.image(imagen, width=200)
+        if imagen_pil is not None:
+            st.image(imagen_pil, width=200)
 
-    # Preparamos lo que se le enviará a la IA (texto + archivo si existe)
+    # Preparamos lo que se le enviará a la IA (texto + la parte multimedia convertida)
     paquete_envio = [prompt]
     if contenido_para_enviar:
-        # Añadimos los elementos multimedia o documentos al paquete de envío
         paquete_envio.extend(contenido_para_enviar)
 
     # 7. Respuesta del modelo de IA
     with st.chat_message("assistant"):
         with st.spinner("Analizando la información y normativa SST..."):
             try:
-                # Enviamos el contenido multimodal a la sesión de chat
+                # Enviamos el contenido a la sesión de chat de Vertex AI
                 respuesta = st.session_state.chat_session.send_message(paquete_envio)
                 st.markdown(respuesta.text)
             except Exception as e:
