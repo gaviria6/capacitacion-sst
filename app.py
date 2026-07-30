@@ -8,7 +8,8 @@ st.title("Asesor Virtual de SST 👷‍♂️")
 st.write("Bienvenido. Describe un escenario de trabajo, sube una foto de una condición peligrosa o adjunta un documento para analizar.")
 
 # 2. Configuración de la API
-api_key = st.secrets["GEMINI_API_KEY"]
+import os
+api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
 # 3. Inicializar el modelo (usando gemini-3.5-flash)
