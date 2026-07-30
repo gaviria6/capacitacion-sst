@@ -12,9 +12,9 @@ st.write("Bienvenido. Describe un escenario de trabajo, sube una foto de una con
 # 2. Configuración de Vertex AI (Autenticación automática con Google Cloud)
 vertexai.init(project="project-6ae24aa7-49e4-48c3-bcd", location="us-central1")
 
-# 3. Inicializar el modelo (usando gemini-3.5-flash)
+# 3. Inicializar el modelo con la versión estándar compatible en Vertex AI
 modelo = GenerativeModel(
-    'gemini-3.5-flash',
+    'gemini-2.5-flash',
     system_instruction="Eres un asesor experto en Seguridad y Salud en el Trabajo (SST) que trabaja para una ARL. Tu objetivo es ayudar a identificar peligros, evaluar riesgos y sugerir medidas de control preventivas de forma didáctica y basándote en normativas técnicas."
 )
 
@@ -26,7 +26,6 @@ if "chat_session" not in st.session_state:
 for message in st.session_state.chat_session.history:
     role = "assistant" if message.role == "model" else "user"
     with st.chat_message(role):
-        # Recorremos las partes del mensaje para mostrarlas de forma segura
         for part in message.parts:
             if part.text:
                 st.markdown(part.text)
@@ -37,12 +36,10 @@ archivo_subido = st.file_uploader(
     type=["png", "jpg", "jpeg", "pdf"]
 )
 
-# Si el usuario subió un archivo, lo preparamos para Vertex AI
 contenido_para_enviar = []
 imagen_pil = None
 
 if archivo_subido is not None:
-    # Verificamos si es una imagen
     if archivo_subido.type in ["image/png", "image/jpeg", "image/jpg"]:
         imagen_pil = Image.open(archivo_subido)
         st.image(imagen_pil, caption="Imagen cargada para inspección de SST", use_column_width=True)
@@ -52,11 +49,9 @@ if archivo_subido is not None:
         imagen_pil.save(buffered, format=imagen_pil.format if imagen_pil.format else "JPEG")
         img_bytes = buffered.getvalue()
         
-        # Creamos el objeto Part compatible con Vertex AI
         parte_imagen = Part.from_data(data=img_bytes, mime_type=archivo_subido.type)
         contenido_para_enviar.append(parte_imagen)
     else:
-        # Si es un PDF o documento
         st.info(f"📄 Documento adjuntado: {archivo_subido.name}")
         bytes_archivo = archivo_subido.getvalue()
         parte_documento = Part.from_data(data=bytes_archivo, mime_type=archivo_subido.type)
@@ -64,13 +59,11 @@ if archivo_subido is not None:
 
 # 6. Capturar la entrada del usuario (Chat)
 if prompt := st.chat_input("Escribe tu consulta o pide que analice el archivo subido..."):
-    # Mostramos el mensaje del usuario en el chat
     with st.chat_message("user"):
         st.markdown(prompt)
         if imagen_pil is not None:
             st.image(imagen_pil, width=200)
 
-    # Preparamos lo que se le enviará a la IA (texto + la parte multimedia convertida)
     paquete_envio = [prompt]
     if contenido_para_enviar:
         paquete_envio.extend(contenido_para_enviar)
@@ -79,7 +72,6 @@ if prompt := st.chat_input("Escribe tu consulta o pide que analice el archivo su
     with st.chat_message("assistant"):
         with st.spinner("Analizando la información y normativa SST..."):
             try:
-                # Enviamos el contenido a la sesión de chat de Vertex AI
                 respuesta = st.session_state.chat_session.send_message(paquete_envio)
                 st.markdown(respuesta.text)
             except Exception as e:
